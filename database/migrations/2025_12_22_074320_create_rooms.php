@@ -11,18 +11,19 @@ return new class extends Migration
         Schema::create('rooms', function (Blueprint $table) {
             $table->id();
             $table->string('name'); 
-            $table->string('slug')->unique(); // Buat SEO-friendly URL
+            $table->string('slug')->unique();
             $table->text('description'); 
-            $table->json('additional_features'); // ["WiFi", "AC", "TV"]
-            $table->json('images')->nullable(); // Multiple images
+            $table->json('additional_features');
             $table->integer('max_capacity'); 
-            $table->decimal('price_per_night', 15, 2); // Lebih presisi untuk harga
-            $table->boolean('is_active')->default(true); // Buat temporary disable kamar
+            $table->decimal('price_per_night', 15, 2);
+            $table->integer('available_rooms')->default(0); // ✅ Stock kamar
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
             
-            // Index untuk performa query
+            // Indexes
             $table->index('slug');
             $table->index('is_active');
+            $table->index('available_rooms');
         });
     }
 

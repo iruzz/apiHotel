@@ -25,38 +25,35 @@ return new class extends Migration
             $table->date('check_out');
             $table->integer('guest_count');
             $table->integer('duration_nights');
-            $table->text('special_requests')->nullable(); // ✅ NEW
+            $table->text('special_requests')->nullable();
             
             // Pricing
-            $table->decimal('room_price_per_night', 15, 2); // Snapshot harga saat booking
+            $table->decimal('room_price_per_night', 15, 2);
             $table->decimal('total_price', 15, 2);
 
             // Status tracking
-            $table->enum('status', ['pending', 'confirmed', 'cancelled', 'completed'])
-                  ->default('pending');
-            $table->enum('payment_status', ['unpaid', 'paid', 'expired', 'refunded'])
-                  ->default('unpaid');
+            $table->enum('status', ['pending', 'confirmed', 'cancelled', 'completed'])->default('pending');
+            $table->enum('payment_status', ['unpaid', 'paid', 'expired', 'refunded'])->default('unpaid');
             
-            // Payment integration
-            $table->string('snap_token')->nullable();
-            $table->string('payment_reference')->nullable(); // ✅ NEW: Midtrans Order ID
-            $table->timestamp('payment_date')->nullable(); // ✅ NEW
-            $table->timestamp('payment_expired_at')->nullable(); // ✅ NEW: Auto-cancel
+            // Payment gateway
+            $table->string('payment_gateway')->default('duitku'); // duitku, midtrans, manual
             
             // AI/n8n integration
-            $table->string('conversation_id')->nullable(); // ✅ NEW: n8n conversation tracking
-            $table->text('ai_notes')->nullable(); // ✅ NEW: Notes from AI
+            $table->string('conversation_id')->nullable();
+            $table->text('ai_notes')->nullable();
             $table->string('booking_source')->default('web'); // web, whatsapp, api
             
             $table->timestamps();
-            $table->softDeletes(); // Soft delete buat audit trail
+            $table->softDeletes();
             
-            // Indexes untuk performa
+            // Indexes
             $table->index('booking_code');
             $table->index('customer_whatsapp');
+            $table->index('customer_email');
             $table->index('status');
             $table->index('payment_status');
             $table->index(['check_in', 'check_out']);
+            $table->index('payment_gateway');
         });
     }
 
