@@ -1,6 +1,5 @@
 <?php
 
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -39,7 +38,10 @@ class Booking extends Model
         'total_price' => 'decimal:2',
     ];
 
-    // Relationships
+    // ========================================
+    // EXISTING RELATIONSHIPS
+    // ========================================
+    
     public function room()
     {
         return $this->belongsTo(Room::class);
@@ -50,7 +52,24 @@ class Booking extends Model
         return $this->hasOne(Payment::class);
     }
 
-    // Scopes
+    // ========================================
+    // NEW: ADDITIONAL SERVICES RELATIONSHIP
+    // ========================================
+    
+    /**
+     * Relasi ke services lewat pivot table
+     */
+    public function services()
+    {
+        return $this->belongsToMany(Service::class, 'booking_services')
+            ->withPivot('quantity', 'price_snapshot', 'notes')
+            ->withTimestamps();
+    }
+
+    // ========================================
+    // EXISTING SCOPES
+    // ========================================
+    
     public function scopePending($query)
     {
         return $query->where('status', 'pending');
@@ -66,7 +85,10 @@ class Booking extends Model
         return $query->where('payment_status', 'unpaid');
     }
 
-    // Methods
+    // ========================================
+    // EXISTING METHODS
+    // ========================================
+    
     public static function generateBookingCode()
     {
         return 'BOOK-' . strtoupper(uniqid());
@@ -99,5 +121,68 @@ class Booking extends Model
         
         // Return stock
         $this->room->incrementStock();
+    }
+
+    // ========================================
+    // NEW: ADDITIONAL SERVICES METHODS
+    // ========================================
+    
+    /**
+     * Calculate total dari additional services
+     */
+    public function getAdditionalServicesTotal()
+    {
+        return $this->services->sum(function ($service) {
+            return $service->pivot->price_snapshot * $service->pivot->quantity;
+        });
+    }
+
+    /**
+     * Get subtotal (room price + services, before service fee)
+     */
+    public function getSubtotal()
+    {
+        $roomTotal = $this->room_price_per_night * $this->duration_nights;
+        $servicesTotal = $this->getAdditionalServicesTotal();
+        
+        return $roomTotal + $servicesTotal;
+    }
+
+    /**
+     * Calculate service fee (10% dari subtotal)
+     */
+    public function calculateServiceFee()
+    {
+        return $this->getSubtotal() * 0.10;
+    }
+
+    /**
+     * Calculate grand total (room + services + fee)
+     * This should be called setelah services di-attach
+     */
+    public function calculateGrandTotal()
+    {
+        $subtotal = $this->getSubtotal();
+        $serviceFee = $this->calculateServiceFee();
+        
+        return $subtotal + $serviceFee;
+    }
+
+    /**
+     * Update total_price including services
+     * Call ini setelah attach/detach services
+     */
+    public function updateTotalPrice()
+    {
+        $this->total_price = $this->calculateGrandTotal();
+        $this->save();
+    }
+
+    /**
+     * Check if booking has additional services
+     */
+    public function hasAdditionalServices()
+    {
+        return $this->services()->count() > 0;
     }
 }
