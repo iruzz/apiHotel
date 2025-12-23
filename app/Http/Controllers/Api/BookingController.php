@@ -152,6 +152,60 @@ class BookingController extends Controller
         ]);
     }
 
+     public function checkBooking($bookingCode)
+    {
+        try {
+            // Find booking with room and services relationships
+            $booking = Booking::with(['room.mainImage', 'services'])
+                ->where('booking_code', $bookingCode)
+                ->first();
+
+            if (!$booking) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Booking tidak ditemukan. Periksa kembali kode booking Anda.'
+                ], 404);
+            }
+
+            // Format services from many-to-many relationship
+            $services = $booking->services->map(function($service) {
+                return [
+                    'name' => $service->name,
+                    'quantity' => $service->pivot->quantity,
+                    'price' => (float) $service->pivot->price_snapshot, // price per unit
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'booking_code' => $booking->booking_code,
+                    'room_name' => $booking->room->name,
+                    'check_in' => $booking->check_in->format('Y-m-d'),
+                    'check_out' => $booking->check_out->format('Y-m-d'),
+                    'nights' => $booking->duration_nights,
+                    'guests' => $booking->guest_count,
+                    'total_amount' => (float) $booking->total_price,
+                    'status' => $booking->status,
+                    'guest_name' => $booking->customer_name,
+                    'guest_email' => $booking->customer_email,
+                    'guest_phone' => $booking->customer_whatsapp,
+                    'services' => $services,
+                    'created_at' => $booking->created_at->toISOString(),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error checking booking: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil data booking.'
+            ], 500);
+        }
+    }
+
+
     /**
      * Add services to existing booking
      * Endpoint: POST /api/bookings/{bookingCode}/add-services

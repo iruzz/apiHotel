@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\BookingController;
 | API Routes
 |--------------------------------------------------------------------------
 */
+
+// Rooms endpoints
 Route::prefix('rooms')->group(function () {
     // Get all rooms
     Route::get('/', [RoomController::class, 'index']);
@@ -25,16 +27,24 @@ Route::prefix('rooms')->group(function () {
     Route::post('/{roomId}/available-count', [RoomController::class, 'getAvailableCount']);
 });
 
-
+// Services endpoints
 Route::prefix('services')->group(function () {
     Route::get('/', [ServiceController::class, 'index']); // Get all active services
     Route::get('/{id}', [ServiceController::class, 'show']); // Get service detail
     Route::get('/category/{category}', [ServiceController::class, 'byCategory']); // Get by category
 });
 
-// Booking with services
+// Booking endpoints
 Route::prefix('bookings')->group(function () {
-    Route::post('/', [BookingController::class, 'store']); // Create booking with services
-    Route::get('/{bookingCode}', [BookingController::class, 'show']); // Get booking detail
-    Route::post('/{bookingCode}/add-services', [BookingController::class, 'addServices']); // Add services to existing booking
+    // Create booking with services
+    Route::post('/', [BookingController::class, 'store']);
+    
+    // Check booking by code (dipindahkan ke atas untuk menghindari konflik)
+    Route::get('/check/{bookingCode}', [BookingController::class, 'checkBooking']);
+    
+    // Get booking detail (route ini juga bisa digunakan untuk check booking)
+    Route::get('/{bookingCode}', [BookingController::class, 'show']);
+    
+    // Add services to existing booking
+    Route::post('/{bookingCode}/add-services', [BookingController::class, 'addServices']);
 });
